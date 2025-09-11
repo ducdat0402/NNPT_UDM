@@ -1,0 +1,34 @@
+{
+  "posts": [
+    {
+      "id": "1",
+      "title": "a title2",
+      "views": "101"
+    },
+    {
+      "id": "2",
+      "title": "kkk",
+      "views": "123"
+    },
+    {
+      "id": "3",
+      "title": "hahaha",
+      "views": "222"
+    }
+  ],
+  "comments": [
+    {
+      "id": "1",
+      "text": "a comment about post 1",
+      "postId": "1"
+    },
+    {
+      "id": "2",
+      "text": "another comment about post 1",
+      "postId": "1"
+    }
+  ],
+  "profile": {
+    "name": "typicode"
+  }
+}
