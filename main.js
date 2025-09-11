@@ -4,7 +4,9 @@ async function LoadData() {
     let body = document.getElementById("posts-table-body");
     body.innerHTML = ""; // Xóa dữ liệu cũ trước khi load mới
     for (const post of posts) {
-        body.innerHTML += convertDataToHTML(post);
+        if (post.isDelete !== "true") { // Chỉ hiển thị bài chưa bị xóa
+            body.innerHTML += convertDataToHTML(post);
+        }
     }
 }
 
@@ -22,9 +24,19 @@ console.log("Hello from main.js");
 
 // Save data to json-server
 async function SaveData() {
-    let id = document.getElementById("id").value;
+    let idInput = document.getElementById("id").value;
     let title = document.getElementById("title").value;
     let views = document.getElementById("views").value;
+
+    let id = idInput;
+    if (!idInput) {
+        // Nếu không nhập id, tự động tăng id
+        let response = await fetch('http://localhost:3000/posts');
+        let posts = await response.json();
+        let maxId = posts.reduce((max, post) => Math.max(max, Number(post.id)), 0);
+        id = String(maxId + 1);
+    }
+
     let dataObj = { id, title, views };
 
     try {
@@ -48,12 +60,20 @@ async function SaveData() {
 
 async function Delete(id) {
     try {
-        let res = await fetch('http://localhost:3000/posts/' + id, {
-            method: 'DELETE'
+        // Lấy dữ liệu bài viết hiện tại
+        let res = await fetch('http://localhost:3000/posts/' + id);
+        let post = await res.json();
+        // Thêm trường isDelete: "true"
+        post.isDelete = "true";
+        // Gửi yêu cầu cập nhật
+        await fetch('http://localhost:3000/posts/' + id, {
+            method: 'PUT',
+            body: JSON.stringify(post),
+            headers: {
+                'Content-Type': 'application/json'
+            }
         });
-        let response = await res.json();
-        console.log('Success:', response);
-        await LoadData(); // Reload bảng sau khi xóa
+        await LoadData(); // Reload bảng sau khi "xóa mềm"
     } catch (error) {
         console.error('Error:', error);
     }
