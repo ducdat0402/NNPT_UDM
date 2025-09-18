@@ -1,80 +1,73 @@
-async function LoadData() {
-    let response = await fetch('http://localhost:3000/posts');
-    let posts = await response.json();
-    let body = document.getElementById("posts-table-body");
-    body.innerHTML = ""; // Xóa dữ liệu cũ trước khi load mới
-    for (const post of posts) {
-        if (post.isDelete !== "true") { // Chỉ hiển thị bài chưa bị xóa
-            body.innerHTML += convertDataToHTML(post);
-        }
+const express = require('express')
+const app = express()
+const port = 3000
+let fs = require('fs')
+
+// Serve static files (HTML, CSS, JS, JSON)
+app.use(express.static('.'));
+
+app.get('/', (req, res) => {
+  res.sendFile(__dirname + '/index.html');
+})
+
+app.get('/posts', (req, res) => {
+    let posts = fs.readFileSync('./db.json');
+    posts = JSON.parse(posts).posts;
+    
+    let queries = req.query;
+    let views = queries.views;
+    let views_lte = queries.views_lte;
+    let views_gte = queries.views_gte;
+    let title = queries.title;
+    let title_like = queries.title_like;
+    
+    if(views){
+        posts = posts.filter(
+            p=>p.views==views
+        )
     }
-}
-
-function convertDataToHTML(post) {
-    let result = "<tr>";
-    result += "<td>" + post.id + "</td>";
-    result += "<td>" + post.title + "</td>";
-    result += "<td>" + post.views + "</td>";
-    result += `<td><button onclick="Delete('${post.id}')">Delete</button></td>`;
-    result += "</tr>";
-    return result;
-}
-
-console.log("Hello from main.js");
-
-// Save data to json-server
-async function SaveData() {
-    let idInput = document.getElementById("id").value;
-    let title = document.getElementById("title").value;
-    let views = document.getElementById("views").value;
-
-    let id = idInput;
-    if (!idInput) {
-        // Nếu không nhập id, tự động tăng id
-        let response = await fetch('http://localhost:3000/posts');
-        let posts = await response.json();
-        let maxId = posts.reduce((max, post) => Math.max(max, Number(post.id)), 0);
-        id = String(maxId + 1);
+    if(views_lte){
+        posts = posts.filter(
+            p=>p.views<=views_lte
+        )
     }
-
-    let dataObj = { id, title, views };
-
-    try {
-        let res = await fetch('http://localhost:3000/posts/' + id);
-        let fetchOptions = {
-            method: res.ok ? 'PUT' : 'POST',
-            body: JSON.stringify(dataObj),
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        };
-        let url = res.ok ? 'http://localhost:3000/posts/' + id : 'http://localhost:3000/posts';
-        let saveRes = await fetch(url, fetchOptions);
-        let response = await saveRes.json();
-        console.log('Success:', response);
-        await LoadData(); // Reload bảng sau khi lưu
-    } catch (error) {
-        console.error('Error:', error);
+    if(views_gte){
+        posts = posts.filter(
+            p=>p.views>=views_gte
+        )
     }
-}
-
-async function Delete(id) {
-    try {
-        // Lấy dữ liệu bài viết hiện tại
-        let res = await fetch('http://localhost:3000/posts/' + id);
-        let post = await res.json();
-        // Thêm trường isDelete: "true"
-        post.isDelete = "true";
-        // Gửi yêu cầu cập nhật
-        await fetch('http://localhost:3000/posts/' + id, {
-            method: 'PUT',
-            body: JSON.stringify(post),
-            headers: {
-                'Content-Type': 'application/json'
+    if(title_like){
+        posts  = posts.filter(
+            p=>p.title.includes(title_like)
+        )
+    }
+    if(title){
+        posts  = posts.filter(
+            p=>p.title == title
+        )
+    }
+    res.json(posts)  // Thay đổi từ res.send thành res.json
+})
+app.get('/posts/:id', (req, res) => {
+    let id = req.params.id;
+    let posts = fs.readFileSync('./db.json');
+    posts = JSON.parse(posts).posts;
+    
+    let post = posts.filter(
+        p=>p.id==id
+    )
+    if(post.length>0){
+        res.json(post[0]);  // Thay đổi từ res.send thành res.json
+    }else{
+        res.status(404).json({  // Thay đổi từ res.send thành res.json
+            success:false,
+            data:{
+                message: "id not found"
             }
         });
-        await LoadData(); // Reload bảng sau khi "xóa mềm"
-    } catch (error) {
-        console.error('Error:', error);
     }
-}
+})
+
+app.listen(port, () => {
+  console.log(`Example app listening on port ${port}`)
+})
