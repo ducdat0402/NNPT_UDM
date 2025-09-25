@@ -1,3 +1,1 @@
-# NNPT_UDM
-Lê Đức Đạt
-2280600584
+# NNPTUD-S5
